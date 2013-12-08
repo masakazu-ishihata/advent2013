@@ -216,12 +216,24 @@ bot がフォローしているユーザの本棚中の出現頻度 Top 200 の�
 この本 i のクラスを zi とすれば、naive bayes model は  
 p(xi | zi, θ) = Πj p(xij | zi, θ) と分解することを許します。  
 つまりクラスが与えられたとき、各属性は条件付き独立と仮定するモデルです。  
-naive Baeys model に対する MM, EM, ME, EE の実装も一応載っけておきます。
+naive Baeys model に対する MM, EM, ME, EE の[実装][nbc]も一応載っけておきます。
 
 [nbc]: https://github.com/masakazu-ishihata/advent2013/blob/master/nbc.rb "nbc.rb"
 
 
 ### 結果
+
+各学習法のクラスタリング結果です。
+
+1. [MM][mm]
+2. [EM][em]
+3. [ME][me]
+4. [EE][ee]
+
+[mm]: https://github.com/masakazu-ishihata/advent2013/blob/master/mm.txt "mm.txt"
+[em]: https://github.com/masakazu-ishihata/advent2013/blob/master/em.txt "em.txt"
+[me]: https://github.com/masakazu-ishihata/advent2013/blob/master/me.txt "me.txt"
+[ee]: https://github.com/masakazu-ishihata/advent2013/blob/master/ee.txt "ee.txt"
 
 ________________________________________________________________________________
 最後に
