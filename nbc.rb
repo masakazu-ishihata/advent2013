@@ -24,12 +24,6 @@ def delta(x, y); x == y ? 1 : 0; end
 # digamma 関数 (テイラー近似)
 # copied from https://github.com/csauper/content-attitude
 def dig(x)
-  #p = x ** -2
-  #p = (((0.004166666666667*p-0.003968253986254)*p+
-  #    0.008333333333333)*p-0.083333333333333)*p
-  #p = p + Math.log(x) - 0.5 / x - 1.0 / (x-1) - 1.0 / (x-2) -
-  #    1.0 / (x-3) - 1.0 / (x-4) - 1.0 / (x-5) - 1.0 / (x-6)
-  #return p
   x = x + 6
   p = 1.0 / (x * x)
   return (((0.004166666666667*p-0.003968253986254)*p+
@@ -145,18 +139,30 @@ class NaiveBayesModel
   ########################################
   # pka   : p(_k, _a)
   # pkga  : p(_k | _a)
-  def pka(_k, _a);  pk(_k) * pagk(_a, _k); end
+  def pka(_k, _a);  @pk[_k] * pagk(_a, _k); end
   def pkga(_k, _a); pka(_k, _a) / pa(_a);  end
 
   # pa    : p(_a)
   # pagk  : p(_a | _k)
-  def pa(_a);       Array.new(@k){|k| pka(k, _a) }.sum;             end
-  def pagk(_a, _k); Array.new(@d){|d| pvgk(d, _a[d], _k) }.product; end
+  def pa(_a);       Array.new(@k){|k| pka(k, _a) }.sum;              end
+  def pagk(_a, _k); Array.new(@d){|d| @pvgk[_k][d][_a[d]] }.product; end
 
-  # pk    : p(_k)
-  # pvgk  : p(a[_d] = _v | _k)
-  def pk(_k);           @pk[_k];           end
-  def pvgk(_d, _v, _k); @pvgk[_k][_d][_v]; end
+  # export/import parameters
+  def export_par; [@pk, @pvgk].flatten; end
+  def import_par(_ary)
+    # load pk
+    each_k do |k|
+      @pk[k] = _ary.shift
+    end
+    # load pvgk
+    each_k do |k|
+      each_d do |d|
+        each_v(d) do |v|
+          @pvgk[k][d][v] = _ary.shift
+        end
+      end
+    end
+  end
 
   ########################################
   # 学習 : z, p をそれぞれ e, m で推定
@@ -206,31 +212,43 @@ class NaiveBayesModel
   def me_learn; puts "ME"; learn{zm_step; pe_step}; end
   def ee_learn; puts "EE"; learn{ze_step; pe_step}; end
   def learn
-    # パラメータの初期化
-    rand_p
-    p0 = [@pk, @pvgk].flatten
+    best_p, best_l = [nil, nil]
+    for r in 1..@restart
+      puts "Try #{r}"
 
-    # _n 回 | 収束するまで繰り返す
-    for i in 1..@iter
-      # learn
-      t1 = Time.now
-      yield
-      t2 = Time.now
+      # パラメータの初期化
+      rand_p
+      p0 = export_par
 
-      # 収束判定
-      p1 = [@pk, @pvgk].flatten
-      e = mse(p0, p1)
-      printf "%5d %.5e %.5e\n", i, e, t2-t1
-      break if e < @radius
-      p0 = p1
+      # _n 回 | 収束するまで繰り返す
+      for i in 1..@iter
+        # learn
+        t1 = Time.now
+        yield
+        t2 = Time.now
+
+        # 収束判定
+        p1 = export_par
+        e = mse(p0, p1)
+        printf "%5d %.5e %.5e\n", i, e, t2-t1
+        break if e < @radius
+        p0 = p1
+      end
+
+      # prediction
+      max_p
+      max_z
+
+      # loglikelihood
+      l = loglikelihood
+      printf "LL = %e\n", l
+
+      best_p, best_l = [p1, l] if best_l == nil || best_l < l
     end
 
-    # prediction
-    max_p
+    # best result
+    import_par(best_p)
     max_z
-
-    # loglikelihood
-    loglikelihood
   end
 
   #### log likelihood ####

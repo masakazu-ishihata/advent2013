@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
+require "optparse"
 require './nbc.rb'
 
 ################################################################################
@@ -8,16 +9,16 @@ require './nbc.rb'
 ################################################################################
 @ifile = "relation.dat"  # 入力ファイル
 @ofile = "result.dat"    # 出力ファイル
-@k = 5                   # クラスタ数
-@a = 1.1                 # ハイパーパラメータ
+@m = 0                   # 学習法
+@a = 1.1
 @b = 1.1
-@mode = 0                # 学習法
+@k = 5
+@r = 1
 @@mm, @@em, @@me, @@ee = [0, 1, 2, 3]
 
 ################################################################################
 # Arguments
 ################################################################################
-require "optparse"
 OptionParser.new { |opts|
   # options
   opts.on("-h","--help","Show this message") {
@@ -33,17 +34,26 @@ OptionParser.new { |opts|
   opts.on("-k [# clasters]"){ |f|
     @k = f.to_i
   }
+  opts.on("-r [# restart]"){ |f|
+    @r = f.to_i
+  }
+  opts.on("-a [alpha]"){ |f|
+    @a = f.to_f
+  }
+  opts.on("-b [beta]"){ |f|
+    @b = f.to_f
+  }
   opts.on("-1", "--mm"){
-    @mode = @@mm
+    @m = @@mm
   }
   opts.on("-2", "--em"){
-    @mode = @@em
+    @m = @@em
   }
   opts.on("-3", "--me"){
-    @mode = @@me
+    @m = @@me
   }
   opts.on("-4", "--ee"){
-    @mode = @@ee
+    @m = @@ee
   }
   # parse
   opts.parse!(ARGV)
@@ -93,16 +103,19 @@ class MyData
   end
 
   #### clastering ####
-  def clastering(_k, _a, _b, _mode, _file)
+  def clastering(_file, opt = {})
+    opt = {:m => 0, :a => 1.1, :b => 1.1, :k => 5, :r => 1}.merge(opt)
+    p opt
     # init
-    m = NaiveBayesModel.new(_k, @n)
-    m.a = _a
-    m.b = _b
+    m = NaiveBayesModel.new(opt[:k], @n)
+    m.a = opt[:a]
+    m.b = opt[:b]
+    m.restart = opt[:r]
     @data.each{|a| m.add(a) }
 
     # learn
     m.rand_p
-    case _mode
+    case opt[:m]
     when @@mm then m.mm_learn
     when @@em then m.em_learn
     when @@me then m.me_learn
@@ -122,4 +135,4 @@ end
 # main
 ################################################################################
 d = MyData.new(@ifile)
-d.clastering(@k, @a, @b, @mode, @ofile)
+d.clastering(@ofile, {:m => @m, :a => @a, :b => @b, :k => @k, :r => @r})
